@@ -1,0 +1,16 @@
+$kind: http-request
+name: ""
+url: http://localhost:3002/api/inventario/reservar
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"pedido_id\": \"PED-ANA-01\",\r
+
+    \  \"sku\": \"KIT-001\",\r
+
+    \  \"cantidad\": 1\r
+
+    }"
+order: 1000
