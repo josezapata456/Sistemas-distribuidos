@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
+const { crearPedido, listarPedidos } = require('./controllers/pedidos.controller');
 require('dotenv').config();
 
 const app = express();
@@ -16,10 +17,10 @@ app.get('/health', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
-const { crearPedido } = require('./controllers/pedidos.controller');
-
+app.get('/api/pedidos', listarPedidos);
 app.post('/api/pedidos', crearPedido);
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servicio de Pedidos corriendo en el puerto ${PORT}`);
 });
