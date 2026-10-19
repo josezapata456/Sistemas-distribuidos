@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 const { crearPedido, listarPedidos } = require('./controllers/pedidos.controller');
+const { conectarBroker } = require('./utils/broker');
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,7 @@ app.get('/api/pedidos', listarPedidos);
 app.post('/api/pedidos', crearPedido);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Servicio de Pedidos corriendo en el puerto ${PORT}`);
+  await conectarBroker();
 });

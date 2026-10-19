@@ -22,6 +22,18 @@ app.get('/api/inventario', obtenerCatalogo);
 app.post('/api/inventario/reservar', reservarProducto);
 app.post('/api/inventario/liberar', liberarProducto);
 
+// Endpoint auxiliar para reiniciar el stock a 1 unidad durante la defensa en vivo
+app.post('/api/inventario/reset', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE productos SET disponible = 1, reservado = 0, version = version + 1 WHERE sku = 'KIT-001' RETURNING *`
+    );
+    res.status(200).json({ mensaje: 'Stock restaurado a 1 unidad', producto: rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Servicio de Inventario corriendo en el puerto ${PORT}`);
