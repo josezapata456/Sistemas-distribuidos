@@ -12,7 +12,7 @@ const crearPedido = async (req, res) => {
   }
 
   try {
-    // 1. Verificación de Idempotencia
+// 1. Verificación de Idempotencia
     const pedidoExistente = await pool.query(
       'SELECT * FROM pedidos WHERE idempotency_key = $1',
       [idempotencyKey]
@@ -25,15 +25,28 @@ const crearPedido = async (req, res) => {
       });
     }
 
-    // 2. Iniciar la Saga en estado PENDIENTE
+    // 2. Iniciar la Saga en estado PENDIENTE (ID único a prueba de ráfagas en el mismo milisegundo)
     const timestamp = Date.now();
-    const pedidoId = `PED-${timestamp}`;
-    const traceId = `trc-${timestamp}`;
+    const sufijoUnico = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const pedidoId = `PED-${timestamp}-${sufijoUnico}`;
+    const traceId = `trc-${timestamp}-${sufijoUnico}`;
 
-    await pool.query(
-      'INSERT INTO pedidos (id, cliente_id, sku, cantidad, estado, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6)',
-      [pedidoId, cliente_id, sku, cantidad, 'PENDIENTE', idempotencyKey]
-    );
+    try {
+      await pool.query(
+        'INSERT INTO pedidos (id, cliente_id, sku, cantidad, estado, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6)',
+        [pedidoId, cliente_id, sku, cantidad, 'PENDIENTE', idempotencyKey]
+      );
+    } catch (insertErr) {
+      // Si dos peticiones con la MISMA Idempotency-Key entraron en el mismo microsegundo:
+      if (insertErr.code === '23505') {
+        const { rows } = await pool.query('SELECT * FROM pedidos WHERE idempotency_key = $1', [idempotencyKey]);
+        return res.status(200).json({
+          mensaje: 'Pedido recuperado en colisión concurrente (Idempotente)',
+          pedido: rows[0]
+        });
+      }
+      throw insertErr;
+    }
 
     // 3. Paso 1: Reservar en Inventario con Circuit Breaker y Timeout (2000ms)
     try {
